@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        .delete-icon,
+        .edit-icon {
+            cursor: pointer;
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+    <form onsubmit="handleFormSubmit(event)">
+        <label for="username">Username</label>
+        <input type="text" name="username" id="username" />
+        <label for="email">Email</label>
+        <input type="email" name="email" id="email" />
+        <label for="phone">Phone No</label>
+        <input type="tel" name="phone" id="phone" />
+        <button type="submit">Submit</button>
+    </form>
+
+    <!-- User Details Table -->
+    <table border="1">
+        <thead>
+            <tr>
+                <th>Username</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody id="userTableBody">
+        </tbody>
+    </table>
+
+    <!-- Axios CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.6.5/axios.min.js"></script>
+
+    <script>
+        let editingUser = null;
+
+        // Get user details when the DOM has loaded
+        document.addEventListener("DOMContentLoaded", function () {
+            getUsers();
+        });
+
+        function getUsers() {
+            axios.get("https://crudcrud.com/api/da085d3e5b4a4d039670e47391f94b02/Appointmentdata")
+                .then((response) => {
+                    const users = response.data;
+                    users.forEach(user => showUser(user));
+                })
+                .catch((err) => {
+                    console.log(err);
+                });
+        }
+
+        function handleFormSubmit(event) {
+            event.preventDefault();
+            if (editingUser) {
+                editUserDetails();
+            } else {
+                saveToLocal();
+            }
+        }
+
+        function saveToLocal() {
+            // Collecting user details
+            const username = document.getElementById("username").value;
+            const email = document.getElementById("email").value;
+            const phone = document.getElementById("phone").value;
+
+            // Storing user details in local storage
+            const userDetails = {
+                username: username,
+                email: email,
+                phone: phone,
+            }
+
+            // Network call to the server(crudcrud)
+            axios.post("https://crudcrud.com/api/da085d3e5b4a4d039670e47391f94b02/Appointmentdata", userDetails)
+                .then((response) => {
+                    console.log(response.data);
+                    showUser(userDetails);
+                })
+                .catch((err) => {
+                    console.log(err);
+                });
+
+            // Clear input fields after submission
+            clearInputFields();
+        }
+
+        function showUser(userDetails) {
+            const userTableBody = document.getElementById("userTableBody");
+
+            // Creating table row
+            const tableRow = document.createElement("tr");
+
+            // Creating table cells for user details
+            const usernameCell = document.createElement("td");
+            usernameCell.textContent = userDetails.username;
+
+            const emailCell = document.createElement("td");
+            emailCell.textContent = userDetails.email;
+
+            const phoneCell = document.createElement("td");
+            phoneCell.textContent = userDetails.phone;
+
+            // Creating table cell for actions
+            const actionCell = document.createElement("td");
+
+            // Creating delete button
+            const deleteIcon = document.createElement("span");
+            deleteIcon.innerHTML = "&#x1F5D1;"; // Unicode for a delete icon
+            deleteIcon.className = "delete-icon";
+            deleteIcon.onclick = function () {
+                deleteUser(userDetails._id, tableRow);
+            };
+
+            // Creating edit button
+            const editIcon = document.createElement("span");
+            editIcon.innerHTML = "&#x1F589;"; // Unicode for an edit icon
+            editIcon.className = "edit-icon";
+            editIcon.onclick = function () {
+                editUser(userDetails);
+            };
+
+            // Appending buttons to action cell
+            actionCell.appendChild(deleteIcon);
+            actionCell.appendChild(editIcon);
+
+            // Appending cells to table row
+            tableRow.appendChild(usernameCell);
+            tableRow.appendChild(emailCell);
+            tableRow.appendChild(phoneCell);
+            tableRow.appendChild(actionCell);
+
+            // Appending table row to table body
+            userTableBody.appendChild(tableRow);
+        }
+
+        function deleteUser(id, row) {
+            // Implement the logic to delete the user using axios
+            axios.delete(`https://crudcrud.com/api/da085d3e5b4a4d039670e47391f94b02/Appointmentdata/${id}`)
+                .then((response) => {
+                    console.log("Deleted user with ID:", id);
+
+                    // Remove the row from the table
+                    row.remove();
+                })
+                .catch((err) => {
+                    console.log(err);
+                });
+        }
+
+        function editUser(userDetails) {
+            // Populate input fields with existing user details for editing
+            document.getElementById("username").value = userDetails.username;
+            document.getElementById("email").value = userDetails.email;
+            document.getElementById("phone").value = userDetails.phone;
+
+            // Set the editingUser variable to the current user details
+            editingUser = userDetails;
+        }
+
+        function editUserDetails() {
+            // Collecting edited user details
+            const username = document.getElementById("username").value;
+            const email = document.getElementById("email").value;
+            const phone = document.getElementById("phone").value;
+
+            // Update the userDetails object
+            editingUser.username = username;
+            editingUser.email = email;
+            editingUser.phone = phone;
+
+            // Implement the logic to update the user using axios
+            axios.put(`https://crudcrud.com/api/da085d3e5b4a4d039670e47391f94b02/Appointmentdata/${editingUser._id}`, editingUser)
+                .then((response) => {
+                    console.log("Updated user:", editingUser);
+
+                    // Update the user details on the website
+                    updateEditedUser(editingUser);
+                })
+                .catch((err) => {
+                    console.log(err);
+                });
+
+            // Clear input fields after editing
+            clearInputFields();
+
+            // Reset the editingUser variable
+            editingUser = null;
+        }
+
+        function updateEditedUser(editedUser) {
+            // Find and update the user details in the table
+            const userRows = document.getElementById("userTableBody").getElementsByTagName("tr");
+
+            for (let i = 0; i < userRows.length; i++) {
+                const cells = userRows[i].getElementsByTagName("td");
+                if (cells.length > 2 && cells[2].textContent === editedUser.phone) {
+                    cells[0].textContent = editedUser.username;
+                    cells[1].textContent = editedUser.email;
+                    cells[2].textContent = editedUser.phone;
+                    break;
+                }
+            }
+        }
+
+        function clearInputFields() {
+            // Clear input fields
+            document.getElementById("username").value = "";
+            document.getElementById("email").value = "";
+            document.getElementById("phone").value = "";
+        }
+    </script>
+</body>
+</html>
